@@ -57,6 +57,8 @@ int main()
             parsingStatus=R_NONE;
             //开始处理帧指令
             execute_Command_word(receive_value.Command_word);
+            //初始化应答结构体
+            deinit_GFF();
             //等待发送应答
             response_status=WAIT;
             //清空接收缓冲区

@@ -156,7 +156,6 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Message_length=0x01;
         response_value.Protocol_version=0x02;
         response_value.Content[0]=0xFF;
-
         //设备重启标志
         appState=APP_STATE_WAIT_REBOOT;
     }
@@ -214,9 +213,6 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Device_ID=parameter.DeviceID;
         response_value.Frame_type=0x02;
         response_value.Message_length=0x01;
-        // printf("Content[0]:%04X",receive_value.Content[0]);
-        // printf("Content[1]:%04X",receive_value.Content[1]);
-        // printf("Device_ID:%04X",parameter.DeviceID);
         Save_Parameter();
     }
     else if (Command_word==0x01A2)//设置波特率
@@ -258,7 +254,6 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Command_word=0x0111;
         response_value.Message_length=0x02;
         response_value.Protocol_version=0x02;
-
         //回复2字节ID
         response_value.Content[0]=parameter.DeviceID>>8;
         response_value.Content[1]=parameter.DeviceID;
