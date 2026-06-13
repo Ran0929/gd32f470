@@ -12,8 +12,6 @@ char cmd_ascii[128];
 
 void init_response_value(Frame_type frame_type)
 {
-    
-
     response_value.Start_marker=0xA5B6;
     response_value.Device_ID=parameter.DeviceID;
     //Ó¦´ðÖ¡
@@ -43,8 +41,6 @@ void init_response_value(Frame_type frame_type)
 //×éÖ¡
 void Frame_assembly()
 {
-    
-
     int count=0;
     tx_cmd[count++]=response_value.Start_marker>>8;
     tx_cmd[count++]=response_value.Start_marker;

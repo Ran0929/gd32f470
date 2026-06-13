@@ -144,8 +144,6 @@ float Bytes_To_Float_BigEndian(uint8_t *bytes)
 //执行帧命令
 void execute_Command_word(uint16_t Command_word)
 {
-    //默认为应答帧
-    frame_type=Response;
     //初始化应答结构体
     deinit_GFF();
 
@@ -160,7 +158,7 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[0]=0xFF;
 
         //设备重启标志
-        reboot=1;
+        appState=APP_STATE_WAIT_REBOOT;
     }
     else if(Command_word==0x0104)//查询固件版本
     {
@@ -184,24 +182,11 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Message_length=0x01;
         response_value.Protocol_version=0x02;
         response_value.Content[0]=0xFF;
-        // printf("Content=%02X",receive_value.Content[0]);
-        // printf("%02X",receive_value.Content[1]);
-        // printf("%02X",receive_value.Content[2]);
-        // printf("%02X\r\n",receive_value.Content[3]);
-        // printf("Content[0]:%04X",receive_value.Content[0]);
-        // printf("Content[1]:%04X",receive_value.Content[1]);
         uint32_t timestamp1 = ((uint32_t)receive_value.Content[0]<<24)|((uint32_t)receive_value.Content[1]<<16)|((uint32_t)receive_value.Content[2]<<8)|((uint32_t)receive_value.Content[3]);
-        // printf("timestamp=%d\r\n",timestamp1);
         //转换并写入结构体
         UTC_to_RTC(timestamp1);
         //结构体写入硬件
         rtc_init(&rtc_initpara);
-//        rtc_initpara.year=;
-//        rtc_initpara.month=;
-//        rtc_initpara.date=;
-//        rtc_initpara.hour=;
-//        rtc_initpara.minute=;
-//        rtc_initpara.second=;
     }
     else if (Command_word==0x0106)//查询设备时间
     {
@@ -212,16 +197,11 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Message_length=0x04;
         response_value.Protocol_version=0x02;
         rtc_current_time_get(&rtc_initpara);
-        
-//        printf("RTC: 20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
-
-//        printf(" %0.2x:%0.2x:%0.2x \r\n", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
         uint32_t timestamp = RTC_to_UTC();
-        
-       response_value.Content[0]=timestamp>>24;
-       response_value.Content[1]=timestamp>>16;
-       response_value.Content[2]=timestamp>>8;
-       response_value.Content[3]=timestamp;
+        response_value.Content[0]=timestamp>>24;
+        response_value.Content[1]=timestamp>>16;
+        response_value.Content[2]=timestamp>>8;
+        response_value.Content[3]=timestamp;
     }
     else if(Command_word==0x01A1)//设置设备id
     {
@@ -267,7 +247,7 @@ void execute_Command_word(uint16_t Command_word)
         }
         Save_Parameter();
         //设备重启标志
-        reboot=1;
+        appState=APP_STATE_WAIT_REBOOT;
         
     }
     else if(Command_word==0x0111)//查询ID
@@ -280,7 +260,7 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Protocol_version=0x02;
 
         //回复2字节ID
-        response_value.Content[0]=parameter.DeviceID<<8;
+        response_value.Content[0]=parameter.DeviceID>>8;
         response_value.Content[1]=parameter.DeviceID;
     }
     else if(Command_word==0x0112)//查询波特率
@@ -456,11 +436,18 @@ void execute_Command_word(uint16_t Command_word)
         Float_To_Bytes_BigEndian(result_0, response_value.Content+4);
         float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
         Float_To_Bytes_BigEndian(result_1, response_value.Content+8);
-        flag=1;
+        appState=APP_STATE_AUTO_SAMPLING;
    }
    else if (Command_word == 0x0303)//定时自动上报数据停止
    {
-        flag=0;
+        response_value.Start_marker=0xA5B6;
+        response_value.Device_ID=parameter.DeviceID;
+        response_value.Frame_type=0x02;
+        response_value.Command_word=0x0303;
+        response_value.Message_length=0x01;
+        response_value.Protocol_version=0x02;
+        response_value.Content[0]=0xff;
+        appState=APP_STATE_IDLE;
    }
    else if (Command_word == 0x0400)//读取阈值参数（批量读取仅 CH0、CH1）
    {
@@ -546,7 +533,6 @@ void execute_Command_word(uint16_t Command_word)
    }
     else if(Command_word==0xFFFF)//上位机广播寻找设备
     {
-        printf("66666666");
         response_value.Start_marker=0xA5B6;
         response_value.Device_ID=parameter.DeviceID;
         response_value.Frame_type=0x05;

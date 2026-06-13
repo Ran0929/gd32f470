@@ -561,12 +561,29 @@ void OLED_Init(void)
 
 void isOLED(void)
 {
-//    OLED_ShowString(0,0,time_data,16);
-//    OLED_ShowString(0,16,data,16);
-//    OLED_Refresh();
-
+	static uint8_t lastState;
     OLED_ShowString(0,0,"2026290058",16);
-    OLED_Refresh();
+	OLED_Refresh();
+	if (appState != lastState) {
+        // 状态发生变化，清屏一次
+        OLED_Clear();
+        lastState = appState;
+    }
+	if(appState==APP_STATE_IDLE)
+	{
+		OLED_ShowString(0,16,"IDLE",16);
+    	OLED_Refresh();
+	}
+	else if (appState==APP_STATE_AUTO_SAMPLING)
+	{
+		OLED_ShowString(0,16,"AutoSample",16);
+    	OLED_Refresh();
+	}
+	else if (appState==APP_STATE_BOOTLOADER)
+	{
+		OLED_ShowString(0,16,"Bootloader",16);
+    	OLED_Refresh();
+	}
 }
 
 void set_OLED(uint8_t state)

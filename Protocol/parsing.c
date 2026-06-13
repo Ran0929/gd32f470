@@ -88,29 +88,6 @@ int Frame_analysis(void)
         }
         receive_value.CRC16=(cmd_hex[frame_tail-3]<<8)|cmd_hex[frame_tail-2];
         receive_value.Closing_symbol=(cmd_hex[frame_tail-1]<<8)|cmd_hex[frame_tail];
-
-        // printf("Start_marker=%04X\r\n",receive_value.Start_marker);
-        // printf("Device_ID=%04X\r\n",receive_value.Device_ID);
-        // printf("Frame_type=%02X\r\n",receive_value.Frame_type);
-        // printf("Command_word=%04X\r\n",receive_value.Command_word);
-        // printf("Message_length=%02X\r\n",receive_value.Message_length);
-        // printf("Protocol_version=%02X\r\n",receive_value.Protocol_version);
-        // printf("Content:");
-        // for(int i = 0; i < receive_value.Message_length; i++)
-        // {
-        //     printf("%02X ", receive_value.Content[i]);
-        // }
-        // printf("\r\n");
-        // printf("CRC16=%04X\r\n",receive_value.CRC16);
-        // printf("Closing_symbol=%04X\r\n",receive_value.Closing_symbol);
-
-        // printf("cmd_hex: ");
-        // for(int k = 0; k < 40; k++)
-        // {
-        //     printf("%02X ", cmd_hex[k]);
-        // }
-        // printf("\r\n");
-        
         
         //完成帧解析状态
         // 解析完成，清空缓冲区

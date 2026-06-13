@@ -2,50 +2,51 @@
 
 #include "HeaderFiles.h"
 
-SystemParams_t g_sys_params;
-
-void Flash_read(void)
+void Save_Parameter(void)
 {
-    // 读出Flash参数
-    SystemParams_t *p = (SystemParams_t *)PARAM_FLASH_ADDR;
-    
-    if (p->Flash_save_win == Flash_Flag_CODE) {
-        // Flash有效，读取所有字段
-        g_sys_params.Flash_save_win = p->Flash_save_win;
-        g_sys_params.ch0_ratio = p->ch0_ratio;
-        g_sys_params.ch1_ratio = p->ch1_ratio;
-        g_sys_params.ch0_threshold = p->ch0_threshold;
-        g_sys_params.ch1_threshold = p->ch1_threshold;
-        g_sys_params.device_id = p->device_id;
-        g_sys_params.baudrate_code = p->baudrate_code;
-    } else {
-        // Flash无效，使用默认值
-        g_sys_params.Flash_save_win = Flash_Flag_CODE;
-        g_sys_params.ch0_ratio = 1.0f;
-        g_sys_params.ch1_ratio = 1.0f;
-        g_sys_params.ch0_threshold = 3.0f;
-        g_sys_params.ch1_threshold = 3.0f;
-        g_sys_params.device_id = 0x0001;
-        g_sys_params.baudrate_code = 13;  // 19200
-    }
+    fmc_unlock(); // 解锁
+
+    // 擦除页面每页4KB
+    fmc_page_erase(PARAM_PAGE);
+    // 写入数据
+    fmc_halfword_program(PARAM_FLASH_ADDR,parameter.DeviceID);
+    fmc_byte_program(PARAM_FLASH_ADDR+2,parameter.Ver1);
+    fmc_byte_program(PARAM_FLASH_ADDR+3,parameter.Ver2);
+    fmc_byte_program(PARAM_FLASH_ADDR+4, parameter.Ver3);
+    fmc_byte_program(PARAM_FLASH_ADDR+5,parameter.Ver4);
+    //波特率写入
+    fmc_word_program(PARAM_FLASH_ADDR+8,parameter.Baud_rate);
+    //ch0-ch1变比和阈值
+    fmc_word_program(PARAM_FLASH_ADDR+12, *(uint32_t*)&parameter.ch0_rate);
+    fmc_word_program(PARAM_FLASH_ADDR+16, *(uint32_t*)&parameter.ch1_rate);
+    fmc_word_program(PARAM_FLASH_ADDR+20, *(uint32_t*)&parameter.ch0_threshold);
+    fmc_word_program(PARAM_FLASH_ADDR+24, *(uint32_t*)&parameter.ch1_threshold);
+
+    fmc_lock();   // 上锁
 }
 
-void Flash_save(void)
+void Read_Parameter(void)
 {
-    // 更新Flash保存的数
-    g_sys_params.Flash_save_win = Flash_Flag_CODE;
+    uint32_t addr = PARAM_FLASH_ADDR;
+    //设备ID
+    uint16_t dev_id = *(volatile uint16_t*)addr;
+    parameter.DeviceID = (dev_id != 0xFFFF) ? dev_id : 0x0001;
+    //固件版本
+    uint8_t v1 = *(volatile uint8_t*)(addr+2);
+    parameter.Ver1 = (v1 != 0xFF) ? v1 : 0x02;
+    uint8_t v2 = *(volatile uint8_t*)(addr+3);
+    parameter.Ver2 = (v2 != 0xFF) ? v2 : 0x00;
+    uint8_t v3 = *(volatile uint8_t*)(addr+4);
+    parameter.Ver3 = (v3 != 0xFF) ? v3 : 0x01;
+    uint8_t v4 = *(volatile uint8_t*)(addr+5);
+    parameter.Ver4 = (v4 != 0xFF) ? v4 : 0x00;
+    //波特率
+    uint32_t baud = *(volatile uint32_t*)(addr+8);
+    parameter.Baud_rate = (baud != 0xFFFFFFFF) ? baud : 19200;
     
-    // 写入Flash参数
-    fmc_unlock();
-    fmc_page_erase(PARAM_FLASH_ADDR);
-    fmc_ready_wait(FMC_TIMEOUT_COUNT);
-
-    uint32_t *buf = (uint32_t *)&g_sys_params;
-    for (int i = 0; i < sizeof(SystemParams_t) / 4; i++) {
-        fmc_word_program(PARAM_FLASH_ADDR + i * 4, buf[i]);
-        fmc_ready_wait(FMC_TIMEOUT_COUNT);
-    }
-
-    fmc_lock();
+    //ch0~ch1变比和阈值
+    parameter.ch0_rate = *(volatile float*)(addr+12);
+    parameter.ch1_rate = *(volatile float*)(addr+16);
+    parameter.ch0_threshold = *(volatile float*)(addr+20);
+    parameter.ch1_threshold = *(volatile float*)(addr+24);
 }
-
