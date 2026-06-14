@@ -5,15 +5,6 @@
 #include "parsing.h"
 #include "RTC.h"
 
-
-// 变比变量（静态，仅在本文件使用）
-float g_ch0_ratio = 2;
-float g_ch1_ratio = 2;
-
-// ch0-ch1阈值参数
-float ch0_threshold = 21.59;
-float ch1_threshold = 21.59;
-
 //设置告警状态
 Alarm alarm = passive_Alarm;
 // ==================== CH0 读取函数（滑动变阻器） ====================
@@ -48,21 +39,21 @@ float ADC_Get_CH0_Voltage(void)
 // 获取CH0实际值（乘变比后）- 用于上报
 float ADC_Get_CH0_Value(void)
 {
-    return ADC_Get_CH0_Voltage() * g_ch0_ratio;
+    return ADC_Get_CH0_Voltage() * parameter.ch0.rate;
 }
 
 // 设置CH0变比
 void ADC_Set_CH0_Ratio(float ratio)
 {
     if(ratio > 0 && ratio < 100) {
-        g_ch0_ratio = ratio;
+        parameter.ch0.rate = ratio;
     }
 }
 
 // 获取CH0变比
 float ADC_Get_CH0_Ratio(void)
 {
-    return g_ch0_ratio;
+    return parameter.ch0.rate;
 }
 
 // ==================== CH1 读取函数（DAC回读） ====================
@@ -98,21 +89,21 @@ float ADC_Get_CH1_Voltage(void)
 // 获取CH1实际值（乘变比后）- 用于上报
 float ADC_Get_CH1_Value(void)
 {
-    return ADC_Get_CH1_Voltage() * g_ch1_ratio;
+    return ADC_Get_CH1_Voltage() * parameter.ch1.rate;
 }
 
 // 设置CH1变比
 void ADC_Set_CH1_Ratio(float ratio)
 {
     if(ratio > 0 && ratio < 100) {
-        g_ch1_ratio = ratio;
+        parameter.ch1.rate = ratio;
     }
 }
 
 // 获取CH1变比
 float ADC_Get_CH1_Ratio(void)
 {
-    return g_ch1_ratio;
+    return parameter.ch1.rate;
 }
 
 
@@ -287,14 +278,14 @@ void execute_Command_word(uint16_t Command_word)
     }
     else if (Command_word==0x0201)//查询CH0数据(ADC通道0:滑动变阻器)
     {
-        float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
-        if ((result_0 > ch0_threshold) && (alarm == initiative_Alarm))
+        float result_0=ADC_Get_CH0_Voltage()*parameter.ch0.rate;  //读取滑动变阻器的电压值
+        if ((result_0 > parameter.ch0.threshold) && (alarm == initiative_Alarm))
         {
             //2026-01-01 12:00:00 | CH0 | 10.50 | 11.12
             rtc_current_time_get(&rtc_initpara);
             printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
             printf(" %0.2x:%0.2x:%0.2x", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
-            printf(" | CH0 | %0.2f | %0.2f\r\n",ch0_threshold,result_0);
+            printf(" | CH0 | %0.2f | %0.2f\r\n",parameter.ch0.threshold,result_0);
 
             //储存在flash中
 
@@ -315,15 +306,15 @@ void execute_Command_word(uint16_t Command_word)
 
     else if (Command_word == 0x0202)// 处理查询CH1数据命令
     {
-        float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
+        float result_1=ADC_Get_CH1_Voltage()*parameter.ch1.rate;  //读取滑动变阻器的电压值
 
-        if ((result_1 > ch1_threshold) && (alarm == initiative_Alarm))
+        if ((result_1 > parameter.ch1.threshold) && (alarm == initiative_Alarm))
         {
             //2026-01-01 12:00:00 | CH0 | 10.50 | 11.12
             rtc_current_time_get(&rtc_initpara);
             printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
             printf(" %0.2x:%0.2x:%0.2x", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
-            printf(" | CH1 | %0.2f | %0.2f\r\n",ch1_threshold,result_1);
+            printf(" | CH1 | %0.2f | %0.2f\r\n",parameter.ch1.threshold,result_1);
         }
         else
         {
@@ -368,7 +359,6 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[0] = 0xFF;       // OK
         
         // 保存到Flash
-        parameter.ch0.rate=g_ch0_ratio;
         Save_Parameter();
     }
 
@@ -399,7 +389,6 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[0] = 0xFF;       // OK
         
         // 保存到Flash
-        parameter.ch1.rate=g_ch1_ratio;
         Save_Parameter();
     }
     else if (Command_word == 0x0261)//设置数据上报时间间隔
@@ -453,9 +442,9 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Content[1]=timestamp>>16;
             response_value.Content[2]=timestamp>>8;
             response_value.Content[3]=timestamp;
-            float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
+            float result_0=ADC_Get_CH0_Voltage()*parameter.ch0.rate;  //读取滑动变阻器的电压值
             Float_To_Bytes_BigEndian(result_0, response_value.Content+4);
-            float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
+            float result_1=ADC_Get_CH1_Voltage()*parameter.ch1.rate;  //读取滑动变阻器的电压值
             Float_To_Bytes_BigEndian(result_1, response_value.Content+8);
             appState=APP_STATE_AUTO_SAMPLING;
     }
@@ -483,8 +472,8 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Command_word = 0x0400;
             response_value.Message_length = 0x08;   // 1字节数据
             response_value.Protocol_version = 0x02;
-            Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
-            Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content+4);
+            Float_To_Bytes_BigEndian(parameter.ch0.threshold, response_value.Content);
+            Float_To_Bytes_BigEndian(parameter.ch1.threshold, response_value.Content+4);
     }
     else if (Command_word == 0x0401)//读取 CH0 阈值参数
     {
@@ -494,8 +483,8 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Command_word = 0x0401;
             response_value.Message_length = 0x04;   // 1字节数据
             response_value.Protocol_version = 0x02;
-            // printf("ch0_threshold=%0.2f\r\n",ch0_threshold);
-            Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
+            // printf("parameter.ch0.threshold=%0.2f\r\n",parameter.ch0.threshold);
+            Float_To_Bytes_BigEndian(parameter.ch0.threshold, response_value.Content);
     }
     else if (Command_word == 0x0402)//读取 CH1 阈值参数
     {
@@ -505,8 +494,8 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Command_word = 0x0402;
             response_value.Message_length = 0x04;   // 1字节数据
             response_value.Protocol_version = 0x02;
-            // printf("ch1_threshold=%0.2f\r\n",ch1_threshold);
-            Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content);
+            // printf("parameter.ch1.threshold=%0.2f\r\n",parameter.ch1.threshold);
+            Float_To_Bytes_BigEndian(parameter.ch1.threshold, response_value.Content);
     }
     else if (Command_word == 0x0403)//读取 CH2 阈值参数
     {
@@ -522,7 +511,7 @@ void execute_Command_word(uint16_t Command_word)
             float_bytes[3] = receive_value.Content[3];
             
             // 将大端序字节数组转换为浮点数
-            ch0_threshold = Bytes_To_Float_BigEndian(float_bytes);
+            parameter.ch0.threshold = Bytes_To_Float_BigEndian(float_bytes);
 
             response_value.Start_marker = 0xA5B6;
             response_value.Device_ID = parameter.DeviceID;
@@ -533,7 +522,6 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Content[0] = 0xff;
 
             // 保存到Flash
-            parameter.ch0.threshold=ch0_threshold;
             Save_Parameter();
     }
     else if (Command_word == 0x0412)//写入 CH1 阈值参数
@@ -546,7 +534,7 @@ void execute_Command_word(uint16_t Command_word)
             float_bytes[3] = receive_value.Content[3];
             
             // 将大端序字节数组转换为浮点数
-            ch1_threshold = Bytes_To_Float_BigEndian(float_bytes);
+            parameter.ch1.threshold = Bytes_To_Float_BigEndian(float_bytes);
 
             response_value.Start_marker = 0xA5B6;
             response_value.Device_ID = parameter.DeviceID;
@@ -557,7 +545,6 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Content[0] = 0xff;
 
             // 保存到Flash
-            parameter.ch1.threshold=ch1_threshold;
             Save_Parameter();
     }
     else if (Command_word == 0x0413)//写入 CH2 阈值参数

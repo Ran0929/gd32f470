@@ -3,14 +3,6 @@
 
 #include "gd32f4xx.h"
 
-// 变比变量（静态，仅在本文件使用）
-extern float g_ch0_ratio;
-extern float g_ch1_ratio;
-
-// ch0-ch1阈值参数
-extern float ch0_threshold;
-extern float ch1_threshold;
-
 typedef enum    //告警状态
 {
     initiative_Alarm,//主动告警

@@ -18,10 +18,6 @@ int main()
     Read_Parameter();   //读falsh数据
     //从FLASH读波特率赋值
     SET_Baud_rate=parameter.Baud_rate;
-    g_ch0_ratio=parameter.ch0.rate;
-    g_ch1_ratio=parameter.ch1.rate;
-    ch0_threshold=parameter.ch0.threshold;
-    ch1_threshold=parameter.ch1.threshold;
     USART0_Config();    //串口0初始化
     RTC_Init();         //RTC实时时钟初始化
     LED_init();         //LED初始化
@@ -91,9 +87,9 @@ int main()
                 response_value.Content[1]=timestamp>>16;
                 response_value.Content[2]=timestamp>>8;
                 response_value.Content[3]=timestamp;
-                float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
+                float result_0=ADC_Get_CH0_Voltage()*parameter.ch0.rate;  //读取滑动变阻器的电压值
                 Float_To_Bytes_BigEndian(result_0, response_value.Content+4);
-                float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
+                float result_1=ADC_Get_CH1_Voltage()*parameter.ch1.rate;  //读取滑动变阻器的电压值
                 Float_To_Bytes_BigEndian(result_1, response_value.Content+8);
                 Frame_assembly();
             }
