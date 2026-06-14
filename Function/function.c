@@ -14,6 +14,8 @@ float g_ch1_ratio = 2;
 float ch0_threshold = 21.59;
 float ch1_threshold = 21.59;
 
+//设置告警状态
+Alarm alarm = passive_Alarm;
 // ==================== CH0 读取函数（滑动变阻器） ====================
 
 // 读取CH0（电位器）原始值
@@ -286,30 +288,51 @@ void execute_Command_word(uint16_t Command_word)
     else if (Command_word==0x0201)//查询CH0数据(ADC通道0:滑动变阻器)
     {
         float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
-        // printf("reslt_0=%0.2f\r\n",result_0);
+        if ((result_0 > ch0_threshold) && (alarm == initiative_Alarm))
+        {
+            //2026-01-01 12:00:00 | CH0 | 10.50 | 11.12
+            rtc_current_time_get(&rtc_initpara);
+            printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
+            printf(" %0.2x:%0.2x:%0.2x", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
+            printf(" | CH0 | %0.2f | %0.2f\r\n",ch0_threshold,result_0);
+        }
+        else
+        {
+            response_value.Start_marker=0xA5B6;
+            response_value.Device_ID=parameter.DeviceID;
+            response_value.Frame_type=0x02;
+            response_value.Command_word=0x0201;
+            response_value.Message_length=0x04;
+            response_value.Protocol_version=0x02;
+            
+            Float_To_Bytes_BigEndian(result_0, response_value.Content);
+        }
         
-        // printf("g_ch0_ratio=%0.2f\r\n",g_ch0_ratio);
-        response_value.Start_marker=0xA5B6;
-        response_value.Device_ID=parameter.DeviceID;
-        response_value.Frame_type=0x02;
-        response_value.Command_word=0x0201;
-        response_value.Message_length=0x04;
-        response_value.Protocol_version=0x02;
-        
-        Float_To_Bytes_BigEndian(result_0, response_value.Content);
     }
 
     else if (Command_word == 0x0202)// 处理查询CH1数据命令
     {
         float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
-        // printf("reslt_0=%0.2f\r\n",result_0);
-        response_value.Start_marker=0xA5B6;
-        response_value.Device_ID=parameter.DeviceID;
-        response_value.Frame_type=0x02;
-        response_value.Command_word=0x0202;
-        response_value.Message_length=0x04;
-        response_value.Protocol_version=0x02;
-        Float_To_Bytes_BigEndian(result_1, response_value.Content);
+
+        if ((result_1 > ch1_threshold) && (alarm == initiative_Alarm))
+        {
+            //2026-01-01 12:00:00 | CH0 | 10.50 | 11.12
+            rtc_current_time_get(&rtc_initpara);
+            printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
+            printf(" %0.2x:%0.2x:%0.2x", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
+            printf(" | CH1 | %0.2f | %0.2f\r\n",ch1_threshold,result_1);
+        }
+        else
+        {
+            // printf("reslt_0=%0.2f\r\n",result_0);
+            response_value.Start_marker=0xA5B6;
+            response_value.Device_ID=parameter.DeviceID;
+            response_value.Frame_type=0x02;
+            response_value.Command_word=0x0202;
+            response_value.Message_length=0x04;
+            response_value.Protocol_version=0x02;
+            Float_To_Bytes_BigEndian(result_1, response_value.Content);
+        }
     }
     else if (Command_word == 0x0221)  //查询特定通道数据（此处为外部 ADC 的 PT100）
     {
@@ -358,7 +381,7 @@ void execute_Command_word(uint16_t Command_word)
         // 将大端序字节数组转换为浮点数
         float ratio = Bytes_To_Float_BigEndian(float_bytes);
         
-        printf("Set CH1 Ratio: %.2f\r\n", ratio);
+        // printf("Set CH1 Ratio: %.2f\r\n", ratio);
         
         // 调用变比设置函数
         ADC_Set_CH1_Ratio(ratio);
@@ -468,7 +491,7 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Command_word = 0x0401;
             response_value.Message_length = 0x04;   // 1字节数据
             response_value.Protocol_version = 0x02;
-            printf("ch0_threshold=%0.2f\r\n",ch0_threshold);
+            // printf("ch0_threshold=%0.2f\r\n",ch0_threshold);
             Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
     }
     else if (Command_word == 0x0402)//读取 CH1 阈值参数
@@ -479,7 +502,7 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Command_word = 0x0402;
             response_value.Message_length = 0x04;   // 1字节数据
             response_value.Protocol_version = 0x02;
-            printf("ch1_threshold=%0.2f\r\n",ch1_threshold);
+            // printf("ch1_threshold=%0.2f\r\n",ch1_threshold);
             Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content);
     }
     else if (Command_word == 0x0403)//读取 CH2 阈值参数
@@ -552,7 +575,23 @@ void execute_Command_word(uint16_t Command_word)
     }
     else if (Command_word == 0x0601)//是否主动上报告警
     {
-        
+        if (receive_value.Content[0] == 0x01)
+        {
+            //主动上报
+            alarm = initiative_Alarm;
+        }
+        else if (receive_value.Content[0] == 0x02)
+        {
+            //不主动上报
+            alarm = passive_Alarm;
+        }
+        response_value.Start_marker=0xA5B6;
+        response_value.Device_ID=parameter.DeviceID;
+        response_value.Frame_type=0x02;
+        response_value.Command_word=Command_word;
+        response_value.Message_length=0x01;
+        response_value.Protocol_version=0x02;
+        response_value.Content[0]=0xFF;
     }
     else if (Command_word == 0x0602)//查询告警记录
     {

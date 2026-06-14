@@ -11,6 +11,13 @@ extern float g_ch1_ratio;
 extern float ch0_threshold;
 extern float ch1_threshold;
 
+typedef enum    //告警状态
+{
+    initiative_Alarm,//主动告警
+    passive_Alarm,   //不主动告警
+}Alarm;
+extern Alarm alarm; 
+
 // ==================== CH0 函数声明（滑动变阻器） ====================
 uint16_t ADC_Read_CH0(void);              // 读取CH0原始值
 float ADC_Get_CH0_Voltage(void);          // 获取CH0电压
