@@ -159,7 +159,7 @@ void execute_Command_word(uint16_t Command_word)
         //设备重启标志
         appState=APP_STATE_WAIT_REBOOT;
     }
-    else if(Command_word==0x0104)//查询固件版本
+    else if (Command_word==0x0104)//查询固件版本
     {
         response_value.Start_marker=0xA5B6;
         response_value.Device_ID=parameter.DeviceID;
@@ -202,7 +202,7 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[2]=timestamp>>8;
         response_value.Content[3]=timestamp;
     }
-    else if(Command_word==0x01A1)//设置设备id
+    else if (Command_word==0x01A1)//设置设备id
     {
         parameter.DeviceID=((uint16_t)receive_value.Content[0]<<8)|(uint16_t)receive_value.Content[1];
 
@@ -246,7 +246,7 @@ void execute_Command_word(uint16_t Command_word)
         appState=APP_STATE_WAIT_REBOOT;
         
     }
-    else if(Command_word==0x0111)//查询ID
+    else if (Command_word==0x0111)//查询ID
     {
         response_value.Start_marker=0xA5B6;
         response_value.Device_ID=parameter.DeviceID;
@@ -258,7 +258,7 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[0]=parameter.DeviceID>>8;
         response_value.Content[1]=parameter.DeviceID;
     }
-    else if(Command_word==0x0112)//查询波特率
+    else if (Command_word==0x0112)//查询波特率
     {
         response_value.Start_marker=0xA5B6;
         response_value.Device_ID=parameter.DeviceID;
@@ -283,7 +283,7 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Content[0]=0x11;
         }
     }
-    else if(Command_word==0x0201)//查询CH0数据(ADC通道0:滑动变阻器)
+    else if (Command_word==0x0201)//查询CH0数据(ADC通道0:滑动变阻器)
     {
         float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
         // printf("reslt_0=%0.2f\r\n",result_0);
@@ -298,8 +298,8 @@ void execute_Command_word(uint16_t Command_word)
         
         Float_To_Bytes_BigEndian(result_0, response_value.Content);
     }
-    
-    else if(Command_word == 0x0202)// 处理查询CH1数据命令
+
+    else if (Command_word == 0x0202)// 处理查询CH1数据命令
     {
         float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
         // printf("reslt_0=%0.2f\r\n",result_0);
@@ -311,11 +311,11 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Protocol_version=0x02;
         Float_To_Bytes_BigEndian(result_1, response_value.Content);
     }
-    else if(Command_word == 0x0221)  //查询特定通道数据（此处为外部 ADC 的 PT100）
+    else if (Command_word == 0x0221)  //查询特定通道数据（此处为外部 ADC 的 PT100）
     {
 
     }
-    else if(Command_word == 0x0241)  //设置 CH0 变比
+    else if (Command_word == 0x0241)  //设置 CH0 变比
     {
         // 从接收帧中获取浮点数（4字节，大端序IEEE754）
         uint8_t float_bytes[4];
@@ -346,7 +346,7 @@ void execute_Command_word(uint16_t Command_word)
         Save_Parameter();
     }
 
-    else if(Command_word == 0x0242)  //设置 CH1 变比
+    else if (Command_word == 0x0242)  //设置 CH1 变比
     {
         // 从接收帧中获取浮点数（4字节，大端序IEEE754）
         uint8_t float_bytes[4];
@@ -376,7 +376,7 @@ void execute_Command_word(uint16_t Command_word)
         parameter.ch1_rate=g_ch1_ratio;
         Save_Parameter();
     }
-    else if(Command_word == 0x0261)//设置数据上报时间间隔
+    else if (Command_word == 0x0261)//设置数据上报时间间隔
     {
         if(receive_value.Content[0]==0x01)
         {
@@ -398,135 +398,171 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Protocol_version = 0x02;
         response_value.Content[0] = 0xFF;       // OK
     }
-    else if(Command_word == 0x0301)//设置 DAC 输出电压
-   {
-       int value=receive_value.Content[0]<<8|receive_value.Content[1];
+    else if (Command_word == 0x0301)//设置 DAC 输出电压
+    {
+        int value=receive_value.Content[0]<<8|receive_value.Content[1];
     //    printf("value=%d\r\n",value);
-       DAC_Set_Output((int)value);
+        DAC_Set_Output((int)value);
     //    printf("result=%0.2f\r\n",ADC_Get_CH1_Voltage());
-       response_value.Start_marker=0xA5B6;
-       response_value.Device_ID=parameter.DeviceID;
-       response_value.Frame_type=0x02;
-       response_value.Command_word=0x0301;
-       response_value.Message_length=0x01;
-       response_value.Protocol_version=0x02;
-       response_value.Content[0]=0xff;
-   }
-   else if (Command_word == 0x0302)//定时自动上报数据开始（批量上报仅 CH0、CH1）
-   {
-        response_value.Start_marker = 0xA5B6;
-        response_value.Device_ID = parameter.DeviceID;
-        response_value.Frame_type = 0x02;       // 应答帧
-        response_value.Command_word = 0x0302;
-        response_value.Message_length = 0x12;   // 1字节数据
-        response_value.Protocol_version = 0x02;
-
-        rtc_current_time_get(&rtc_initpara);
-        uint32_t timestamp = RTC_to_UTC();
-        response_value.Content[0]=timestamp>>24;
-        response_value.Content[1]=timestamp>>16;
-        response_value.Content[2]=timestamp>>8;
-        response_value.Content[3]=timestamp;
-        float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
-        Float_To_Bytes_BigEndian(result_0, response_value.Content+4);
-        float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
-        Float_To_Bytes_BigEndian(result_1, response_value.Content+8);
-        appState=APP_STATE_AUTO_SAMPLING;
-   }
-   else if (Command_word == 0x0303)//定时自动上报数据停止
-   {
         response_value.Start_marker=0xA5B6;
         response_value.Device_ID=parameter.DeviceID;
         response_value.Frame_type=0x02;
-        response_value.Command_word=0x0303;
+        response_value.Command_word=0x0301;
         response_value.Message_length=0x01;
         response_value.Protocol_version=0x02;
         response_value.Content[0]=0xff;
-        appState=APP_STATE_IDLE;
-   }
-   else if (Command_word == 0x0400)//读取阈值参数（批量读取仅 CH0、CH1）
-   {
+    }
+    else if (Command_word == 0x0302)//定时自动上报数据开始（批量上报仅 CH0、CH1）
+    {
+            response_value.Start_marker = 0xA5B6;
+            response_value.Device_ID = parameter.DeviceID;
+            response_value.Frame_type = 0x02;       // 应答帧
+            response_value.Command_word = 0x0302;
+            response_value.Message_length = 0x12;   // 1字节数据
+            response_value.Protocol_version = 0x02;
 
-        response_value.Start_marker = 0xA5B6;
-        response_value.Device_ID = parameter.DeviceID;
-        response_value.Frame_type = 0x02;       // 应答帧
-        response_value.Command_word = 0x0400;
-        response_value.Message_length = 0x08;   // 1字节数据
-        response_value.Protocol_version = 0x02;
-        Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
-        Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content+4);
-   }
-   else if (Command_word == 0x0401)//读取 CH0 阈值参数
-   {
-        response_value.Start_marker = 0xA5B6;
-        response_value.Device_ID = parameter.DeviceID;
-        response_value.Frame_type = 0x02;       // 应答帧
-        response_value.Command_word = 0x0401;
-        response_value.Message_length = 0x04;   // 1字节数据
-        response_value.Protocol_version = 0x02;
-        printf("ch0_threshold=%0.2f\r\n",ch0_threshold);
-        Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
-   }
-   else if (Command_word == 0x0402)//读取 CH1 阈值参数
-   {
-        response_value.Start_marker = 0xA5B6;
-        response_value.Device_ID = parameter.DeviceID;
-        response_value.Frame_type = 0x02;       // 应答帧
-        response_value.Command_word = 0x0402;
-        response_value.Message_length = 0x04;   // 1字节数据
-        response_value.Protocol_version = 0x02;
-        printf("ch1_threshold=%0.2f\r\n",ch1_threshold);
-        Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content);
-   }
-   else if (Command_word == 0x0411)//写入 CH0 阈值参数
-   {
-        // 从接收帧中获取浮点数（4字节，大端序IEEE754）
-        uint8_t float_bytes[4];
-        float_bytes[0] = receive_value.Content[0];
-        float_bytes[1] = receive_value.Content[1];
-        float_bytes[2] = receive_value.Content[2];
-        float_bytes[3] = receive_value.Content[3];
+            rtc_current_time_get(&rtc_initpara);
+            uint32_t timestamp = RTC_to_UTC();
+            response_value.Content[0]=timestamp>>24;
+            response_value.Content[1]=timestamp>>16;
+            response_value.Content[2]=timestamp>>8;
+            response_value.Content[3]=timestamp;
+            float result_0=ADC_Get_CH0_Voltage()*g_ch0_ratio;  //读取滑动变阻器的电压值
+            Float_To_Bytes_BigEndian(result_0, response_value.Content+4);
+            float result_1=ADC_Get_CH1_Voltage()*g_ch1_ratio;  //读取滑动变阻器的电压值
+            Float_To_Bytes_BigEndian(result_1, response_value.Content+8);
+            appState=APP_STATE_AUTO_SAMPLING;
+    }
+    else if (Command_word == 0x0303)//定时自动上报数据停止
+    {
+            response_value.Start_marker=0xA5B6;
+            response_value.Device_ID=parameter.DeviceID;
+            response_value.Frame_type=0x02;
+            response_value.Command_word=0x0303;
+            response_value.Message_length=0x01;
+            response_value.Protocol_version=0x02;
+            response_value.Content[0]=0xff;
+            appState=APP_STATE_IDLE;
+    }
+    else if (Command_word == 0x03AA)//进入睡眠模式
+    {
         
-        // 将大端序字节数组转换为浮点数
-        ch0_threshold = Bytes_To_Float_BigEndian(float_bytes);
+    }
+    else if (Command_word == 0x0400)//读取阈值参数（批量读取仅 CH0、CH1）
+    {
 
-        response_value.Start_marker = 0xA5B6;
-        response_value.Device_ID = parameter.DeviceID;
-        response_value.Frame_type = 0x02;       // 应答帧
-        response_value.Command_word = 0x0411;
-        response_value.Message_length = 0x01;   // 1字节数据
-        response_value.Protocol_version = 0x02;
-        response_value.Content[0] = 0xff;
-
-        // 保存到Flash
-        parameter.ch0_threshold=ch0_threshold;
-        Save_Parameter();
-   }
-   else if (Command_word == 0x0412)//写入 CH1 阈值参数
-   {
-        // 从接收帧中获取浮点数（4字节，大端序IEEE754）
-        uint8_t float_bytes[4];
-        float_bytes[0] = receive_value.Content[0];
-        float_bytes[1] = receive_value.Content[1];
-        float_bytes[2] = receive_value.Content[2];
-        float_bytes[3] = receive_value.Content[3];
+            response_value.Start_marker = 0xA5B6;
+            response_value.Device_ID = parameter.DeviceID;
+            response_value.Frame_type = 0x02;       // 应答帧
+            response_value.Command_word = 0x0400;
+            response_value.Message_length = 0x08;   // 1字节数据
+            response_value.Protocol_version = 0x02;
+            Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
+            Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content+4);
+    }
+    else if (Command_word == 0x0401)//读取 CH0 阈值参数
+    {
+            response_value.Start_marker = 0xA5B6;
+            response_value.Device_ID = parameter.DeviceID;
+            response_value.Frame_type = 0x02;       // 应答帧
+            response_value.Command_word = 0x0401;
+            response_value.Message_length = 0x04;   // 1字节数据
+            response_value.Protocol_version = 0x02;
+            printf("ch0_threshold=%0.2f\r\n",ch0_threshold);
+            Float_To_Bytes_BigEndian(ch0_threshold, response_value.Content);
+    }
+    else if (Command_word == 0x0402)//读取 CH1 阈值参数
+    {
+            response_value.Start_marker = 0xA5B6;
+            response_value.Device_ID = parameter.DeviceID;
+            response_value.Frame_type = 0x02;       // 应答帧
+            response_value.Command_word = 0x0402;
+            response_value.Message_length = 0x04;   // 1字节数据
+            response_value.Protocol_version = 0x02;
+            printf("ch1_threshold=%0.2f\r\n",ch1_threshold);
+            Float_To_Bytes_BigEndian(ch1_threshold, response_value.Content);
+    }
+    else if (Command_word == 0x0403)//读取 CH2 阈值参数
+    {
         
-        // 将大端序字节数组转换为浮点数
-        ch1_threshold = Bytes_To_Float_BigEndian(float_bytes);
+    }
+    else if (Command_word == 0x0411)//写入 CH0 阈值参数
+    {
+            // 从接收帧中获取浮点数（4字节，大端序IEEE754）
+            uint8_t float_bytes[4];
+            float_bytes[0] = receive_value.Content[0];
+            float_bytes[1] = receive_value.Content[1];
+            float_bytes[2] = receive_value.Content[2];
+            float_bytes[3] = receive_value.Content[3];
+            
+            // 将大端序字节数组转换为浮点数
+            ch0_threshold = Bytes_To_Float_BigEndian(float_bytes);
 
-        response_value.Start_marker = 0xA5B6;
-        response_value.Device_ID = parameter.DeviceID;
-        response_value.Frame_type = 0x02;       // 应答帧
-        response_value.Command_word = 0x0412;
-        response_value.Message_length = 0x01;   // 1字节数据
-        response_value.Protocol_version = 0x02;
-        response_value.Content[0] = 0xff;
+            response_value.Start_marker = 0xA5B6;
+            response_value.Device_ID = parameter.DeviceID;
+            response_value.Frame_type = 0x02;       // 应答帧
+            response_value.Command_word = 0x0411;
+            response_value.Message_length = 0x01;   // 1字节数据
+            response_value.Protocol_version = 0x02;
+            response_value.Content[0] = 0xff;
 
-        // 保存到Flash
-        parameter.ch1_threshold=ch1_threshold;
-        Save_Parameter();
-   }
-    else if(Command_word==0xFFFF)//上位机广播寻找设备
+            // 保存到Flash
+            parameter.ch0_threshold=ch0_threshold;
+            Save_Parameter();
+    }
+    else if (Command_word == 0x0412)//写入 CH1 阈值参数
+    {
+            // 从接收帧中获取浮点数（4字节，大端序IEEE754）
+            uint8_t float_bytes[4];
+            float_bytes[0] = receive_value.Content[0];
+            float_bytes[1] = receive_value.Content[1];
+            float_bytes[2] = receive_value.Content[2];
+            float_bytes[3] = receive_value.Content[3];
+            
+            // 将大端序字节数组转换为浮点数
+            ch1_threshold = Bytes_To_Float_BigEndian(float_bytes);
+
+            response_value.Start_marker = 0xA5B6;
+            response_value.Device_ID = parameter.DeviceID;
+            response_value.Frame_type = 0x02;       // 应答帧
+            response_value.Command_word = 0x0412;
+            response_value.Message_length = 0x01;   // 1字节数据
+            response_value.Protocol_version = 0x02;
+            response_value.Content[0] = 0xff;
+
+            // 保存到Flash
+            parameter.ch1_threshold=ch1_threshold;
+            Save_Parameter();
+    }
+    else if (Command_word == 0x0413)//写入 CH2 阈值参数
+    {
+        
+    }
+    else if (Command_word == 0x0501)//升级请求
+    {
+        
+    }
+    else if (Command_word == 0x0502)//准备传输固件数据包
+    {
+        
+    }
+    else if (Command_word == 0x0503)//执行升级流程
+    {
+        
+    }
+    else if (Command_word == 0x0601)//是否主动上报告警
+    {
+        
+    }
+    else if (Command_word == 0x0602)//查询告警记录
+    {
+        
+    }
+    else if (Command_word == 0x0603)//清除告警
+    {
+
+    }
+    else if (Command_word==0xFFFF)//上位机广播寻找设备
     {
         response_value.Start_marker=0xA5B6;
         response_value.Device_ID=parameter.DeviceID;
@@ -536,6 +572,5 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Protocol_version=0x02;
         response_value.Content[0]=0x00;
     }
-   
 
 }
