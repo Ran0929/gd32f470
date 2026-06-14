@@ -5,6 +5,9 @@
 #include "parsing.h"
 #include "RTC.h"
 
+//记录当前告警数量
+uint8_t alarm_count = 0;
+
 //设置告警状态
 Alarm alarm = passive_Alarm;
 // ==================== CH0 读取函数（滑动变阻器） ====================
@@ -137,6 +140,7 @@ float Bytes_To_Float_BigEndian(uint8_t *bytes)
 //执行帧命令
 void execute_Command_word(uint16_t Command_word)
 {
+    response_status=WAIT;
     //初始化应答结构体
     deinit_GFF();
 
@@ -281,6 +285,11 @@ void execute_Command_word(uint16_t Command_word)
         float result_0=ADC_Get_CH0_Voltage()*parameter.ch0.rate;  //读取滑动变阻器的电压值
         if ((result_0 > parameter.ch0.threshold) && (alarm == initiative_Alarm))
         {
+            if (alarm_count>=10)
+            {
+                alarm_count=0;
+            }
+            
             //2026-01-01 12:00:00 | CH0 | 10.50 | 11.12
             rtc_current_time_get(&rtc_initpara);
             printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
@@ -288,7 +297,18 @@ void execute_Command_word(uint16_t Command_word)
             printf(" | CH0 | %0.2f | %0.2f\r\n",parameter.ch0.threshold,result_0);
 
             //储存在flash中
+            parameter.record[0].time.year = rtc_initpara.year;
+            parameter.record[0].time.month = rtc_initpara.month;
+            parameter.record[0].time.date = rtc_initpara.date;
+            parameter.record[0].time.hour = rtc_initpara.hour;
+            parameter.record[0].time.minute = rtc_initpara.minute;
+            parameter.record[0].time.second = rtc_initpara.second;
 
+            parameter.record[0].channel_id = 0;
+            parameter.record[0].threshold.threshold = parameter.ch0.threshold;
+            parameter.record[0].sampled_value = result_0;
+            Save_Parameter();
+            alarm_count++;
         }
         else
         {
@@ -310,11 +330,29 @@ void execute_Command_word(uint16_t Command_word)
 
         if ((result_1 > parameter.ch1.threshold) && (alarm == initiative_Alarm))
         {
+            if (alarm_count>=10)
+            {
+                alarm_count=0;
+            }
             //2026-01-01 12:00:00 | CH0 | 10.50 | 11.12
             rtc_current_time_get(&rtc_initpara);
             printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
             printf(" %0.2x:%0.2x:%0.2x", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
             printf(" | CH1 | %0.2f | %0.2f\r\n",parameter.ch1.threshold,result_1);
+
+            //储存在flash中
+            parameter.record[0].time.year = rtc_initpara.year;
+            parameter.record[0].time.month = rtc_initpara.month;
+            parameter.record[0].time.date = rtc_initpara.date;
+            parameter.record[0].time.hour = rtc_initpara.hour;
+            parameter.record[0].time.minute = rtc_initpara.minute;
+            parameter.record[0].time.second = rtc_initpara.second;
+
+            parameter.record[0].channel_id = 1;
+            parameter.record[0].threshold.threshold = parameter.ch1.threshold;
+            parameter.record[0].sampled_value = result_1;
+            Save_Parameter();
+            alarm_count++;
         }
         else
         {
@@ -372,12 +410,12 @@ void execute_Command_word(uint16_t Command_word)
         float_bytes[3] = receive_value.Content[3];
         
         // 将大端序字节数组转换为浮点数
-        float ratio = Bytes_To_Float_BigEndian(float_bytes);
+        float ratio1 = Bytes_To_Float_BigEndian(float_bytes);
         
         // printf("Set CH1 Ratio: %.2f\r\n", ratio);
         
         // 调用变比设置函数
-        ADC_Set_CH1_Ratio(ratio);
+        ADC_Set_CH1_Ratio(ratio1);
         
         // 构建应答帧（OK）
         response_value.Start_marker = 0xA5B6;
@@ -585,11 +623,48 @@ void execute_Command_word(uint16_t Command_word)
     }
     else if (Command_word == 0x0602)//查询告警记录
     {
+        response_status = T_NONE;
+        if (alarm_count != 0)
+        {
+            Read_Parameter();
+            //读最近10条记录
+            for (int i = 0; i < 10; i++)
+            {
+                printf("20%02X-%02X-%02X %02X:%02X:%02X | CH%01X | %0.2f | %0.2f\r\n",parameter.record[0].time.year,parameter.record[0].time.month,parameter.record[0].time.date,
+                parameter.record[0].time.hour,parameter.record[0].time.minute,parameter.record[0].time.second,
+                parameter.record[0].channel_id,parameter.record[0].threshold.threshold,parameter.record[0].sampled_value);
+            }
+        }
+        else
+        {
+            printf("empty\r\n");
+        }
         
     }
     else if (Command_word == 0x0603)//清除告警
     {
+        // for (int i = 0; i < 10; i++)
+        // {
+        //     parameter.record[i].time.year = 0;
+        //     parameter.record[i].time.month = 0;
+        //     parameter.record[i].time.date = 0;
+        //     parameter.record[i].time.hour = 0;
+        //     parameter.record[i].time.minute = 0;
+        //     parameter.record[i].time.second = 0;
 
+        //     parameter.record[i].channel_id = 0;
+        //     parameter.record[i].threshold.threshold = 0;
+        //     parameter.record[i].sampled_value = 0;
+        // }
+        // Save_Parameter();
+        alarm_count = 0;
+        response_value.Start_marker=0xA5B6;
+        response_value.Device_ID=parameter.DeviceID;
+        response_value.Frame_type=0x02;
+        response_value.Command_word=Command_word;
+        response_value.Message_length=0x01;
+        response_value.Protocol_version=0x02;
+        response_value.Content[0]=0xFF;
     }
     else if (Command_word==0xFFFF)//上位机广播寻找设备
     {

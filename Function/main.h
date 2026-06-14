@@ -16,6 +16,7 @@ typedef struct
 {
     rtc_parameter_struct time;      //时间
     uint8_t channel_id;             //通道
+    Sampling_channel threshold;     //采样阈值
     float sampled_value;            //记录当时的采样值
 }Alarm_record;
 
@@ -45,7 +46,6 @@ typedef enum {
     APP_STATE_WAIT_REBOOT,    // 已回复重启指令，等待串口发送完成复位
     APP_STATE_BOOTLOADER,       // 进入bootloader 
 } AppState;
-
 
 extern AppState appState;
 extern Parameter parameter;

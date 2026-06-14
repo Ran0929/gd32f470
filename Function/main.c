@@ -12,6 +12,12 @@ int time_interval=1000;
 int Upload_logo=0;
 int main()
 {
+    // pmu_backup_write_enable();
+
+    // /* 复位 Backup Domain */
+    // rcu_bkp_reset_enable();
+    // rcu_bkp_reset_disable();
+
     init_main();        //初始化采样通道等结构体
     nvic_config();      //中断号配置
     systick_config();   // 时钟嘀嗒定时器配置1ms
@@ -34,7 +40,6 @@ int main()
     response_value.Protocol_version=0x02;
     response_value.Content[0]=0x00;
     Frame_assembly();
-    
     while(1)
     {
         //显示OLED
@@ -50,8 +55,11 @@ int main()
             execute_Command_word(receive_value.Command_word);
             //初始化应答结构体
             deinit_GFF();
-            //等待发送应答
-            response_status=WAIT;
+            if(response_status!=T_NONE)
+            {
+                //等待发送应答
+                response_status=WAIT;
+            }
             //清空接收缓冲区
             for(int i=0;i<RX_BUF_SIZE;i++)
             rx_buf[i]=0;
