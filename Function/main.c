@@ -1,15 +1,9 @@
-#include "HeaderFiles.h"
 #include "main.h"
-#include "parsing.h"
-#include "OLED.h"
-#include "RTC.h"
-#include "DAC.h"
+
 //需要存储到FLASH的参数
 Parameter parameter;
 //状态机
 AppState appState=APP_STATE_IDLE;
-//重启标志
-uint8_t reboot=0;
 //自动上报标志
 int flag=0;
 //自动上报时间间隔
@@ -18,15 +12,16 @@ int time_interval=1000;
 int Upload_logo=0;
 int main()
 {
-    nvic_config();
+    init_main();        //初始化采样通道等结构体
+    nvic_config();      //中断号配置
     systick_config();   // 时钟嘀嗒定时器配置1ms
     Read_Parameter();   //读falsh数据
     //从FLASH读波特率赋值
     SET_Baud_rate=parameter.Baud_rate;
-    g_ch0_ratio=parameter.ch0_rate;
-    g_ch1_ratio=parameter.ch1_rate;
-    ch0_threshold=parameter.ch0_threshold;
-    ch1_threshold=parameter.ch1_threshold;
+    g_ch0_ratio=parameter.ch0.rate;
+    g_ch1_ratio=parameter.ch1.rate;
+    ch0_threshold=parameter.ch0.threshold;
+    ch1_threshold=parameter.ch1.threshold;
     USART0_Config();    //串口0初始化
     RTC_Init();         //RTC实时时钟初始化
     LED_init();         //LED初始化
@@ -116,4 +111,10 @@ void nvic_config(void)
 {
     nvic_priority_group_set(NVIC_PRIGROUP_PRE2_SUB2);// 设置中断优先级分组
 //    nvic_irq_enable(EXTI3_IRQn,2,0);					// 使能EXTI3中断key，优先级为2
+}
+
+void init_main(void)
+{
+    init_Sampling_channel(&ch0);
+    init_Sampling_channel(&ch1);
 }

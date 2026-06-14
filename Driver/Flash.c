@@ -1,5 +1,5 @@
 #include "Flash.h"
-
+#include "Sampling.h"
 #include "HeaderFiles.h"
 
 void Save_Parameter(void)
@@ -17,10 +17,11 @@ void Save_Parameter(void)
     //波特率写入
     fmc_word_program(PARAM_FLASH_ADDR+8,parameter.Baud_rate);
     //ch0-ch1变比和阈值
-    fmc_word_program(PARAM_FLASH_ADDR+12, *(uint32_t*)&parameter.ch0_rate);
-    fmc_word_program(PARAM_FLASH_ADDR+16, *(uint32_t*)&parameter.ch1_rate);
-    fmc_word_program(PARAM_FLASH_ADDR+20, *(uint32_t*)&parameter.ch0_threshold);
-    fmc_word_program(PARAM_FLASH_ADDR+24, *(uint32_t*)&parameter.ch1_threshold);
+    fmc_word_program(PARAM_FLASH_ADDR+12, *(uint32_t*)&parameter.ch0.rate);
+    fmc_word_program(PARAM_FLASH_ADDR+16, *(uint32_t*)&parameter.ch1.rate);
+    fmc_word_program(PARAM_FLASH_ADDR+20, *(uint32_t*)&parameter.ch0.threshold);
+    fmc_word_program(PARAM_FLASH_ADDR+24, *(uint32_t*)&parameter.ch1.threshold);
+    //存储告警记录
 
     fmc_lock();   // 上锁
 }
@@ -45,8 +46,8 @@ void Read_Parameter(void)
     parameter.Baud_rate = (baud != 0xFFFFFFFF) ? baud : 19200;
     
     //ch0~ch1变比和阈值
-    parameter.ch0_rate = *(volatile float*)(addr+12);
-    parameter.ch1_rate = *(volatile float*)(addr+16);
-    parameter.ch0_threshold = *(volatile float*)(addr+20);
-    parameter.ch1_threshold = *(volatile float*)(addr+24);
+    parameter.ch0.rate = *(volatile float*)(addr+12);
+    parameter.ch1.rate = *(volatile float*)(addr+16);
+    parameter.ch0.threshold = *(volatile float*)(addr+20);
+    parameter.ch1.threshold = *(volatile float*)(addr+24);
 }

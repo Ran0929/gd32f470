@@ -295,6 +295,9 @@ void execute_Command_word(uint16_t Command_word)
             printf("20%0.2x-%0.2x-%0.2x",rtc_initpara.year, rtc_initpara.month, rtc_initpara.date);
             printf(" %0.2x:%0.2x:%0.2x", rtc_initpara.hour, rtc_initpara.minute, rtc_initpara.second);
             printf(" | CH0 | %0.2f | %0.2f\r\n",ch0_threshold,result_0);
+
+            //储存在flash中
+
         }
         else
         {
@@ -365,7 +368,7 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[0] = 0xFF;       // OK
         
         // 保存到Flash
-        parameter.ch0_rate=g_ch0_ratio;
+        parameter.ch0.rate=g_ch0_ratio;
         Save_Parameter();
     }
 
@@ -396,7 +399,7 @@ void execute_Command_word(uint16_t Command_word)
         response_value.Content[0] = 0xFF;       // OK
         
         // 保存到Flash
-        parameter.ch1_rate=g_ch1_ratio;
+        parameter.ch1.rate=g_ch1_ratio;
         Save_Parameter();
     }
     else if (Command_word == 0x0261)//设置数据上报时间间隔
@@ -530,7 +533,7 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Content[0] = 0xff;
 
             // 保存到Flash
-            parameter.ch0_threshold=ch0_threshold;
+            parameter.ch0.threshold=ch0_threshold;
             Save_Parameter();
     }
     else if (Command_word == 0x0412)//写入 CH1 阈值参数
@@ -554,7 +557,7 @@ void execute_Command_word(uint16_t Command_word)
             response_value.Content[0] = 0xff;
 
             // 保存到Flash
-            parameter.ch1_threshold=ch1_threshold;
+            parameter.ch1.threshold=ch1_threshold;
             Save_Parameter();
     }
     else if (Command_word == 0x0413)//写入 CH2 阈值参数
